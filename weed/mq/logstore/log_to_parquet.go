@@ -1,6 +1,7 @@
 package logstore
 
 import (
+	"context"
 	"encoding/binary"
 	"fmt"
 	"github.com/parquet-go/parquet-go"
@@ -322,6 +323,7 @@ func saveParquetFileToPartitionDir(filerClient filer_pb.FilerClient, sourceFile 
 
 	for i := int64(0); i < chunkCount; i++ {
 		fileId, uploadResult, err, _ := uploader.UploadWithRetry(
+			context.Background(),
 			filerClient,
 			&filer_pb.AssignVolumeRequest{
 				Count:       1,

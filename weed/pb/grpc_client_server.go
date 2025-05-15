@@ -3,6 +3,8 @@ package pb
 import (
 	"context"
 	"fmt"
+	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/metadata"
 	"math/rand/v2"
 	"net/http"
@@ -58,6 +60,7 @@ func NewGrpcServer(opts ...grpc.ServerOption) *grpc.Server {
 		}),
 		grpc.MaxRecvMsgSize(Max_Message_Size),
 		grpc.MaxSendMsgSize(Max_Message_Size),
+		grpc.UnaryInterceptor(RequestIDUnaryInterceptor()),
 	)
 	for _, opt := range opts {
 		if opt != nil {
@@ -65,6 +68,39 @@ func NewGrpcServer(opts ...grpc.ServerOption) *grpc.Server {
 		}
 	}
 	return grpc.NewServer(options...)
+}
+
+const RequestIDKey = "requestID"
+
+func WithRequestID(ctx context.Context, id string) context.Context {
+	return context.WithValue(ctx, RequestIDKey, id)
+}
+
+func RequestIDUnaryInterceptor() grpc.UnaryServerInterceptor {
+	return func(
+		ctx context.Context,
+		req interface{},
+		info *grpc.UnaryServerInfo,
+		handler grpc.UnaryHandler,
+	) (interface{}, error) {
+		md, _ := metadata.FromIncomingContext(ctx)
+		idList := md.Get("x-request-id")
+		var reqID string
+		if len(idList) > 0 {
+			reqID = idList[0]
+		}
+		if reqID == "" {
+			reqID = uuid.New().String()
+		} else {
+			log := logrus.WithField("requestID", reqID)
+			log.Infof("gRPC %s", info.FullMethod)
+		}
+
+		ctx = WithRequestID(ctx, reqID)
+		grpc.SetTrailer(ctx, metadata.Pairs("x-request-id", reqID))
+
+		return handler(ctx, req)
+	}
 }
 
 func GrpcDial(ctx context.Context, address string, waitForReady bool, opts ...grpc.DialOption) (*grpc.ClientConn, error) {

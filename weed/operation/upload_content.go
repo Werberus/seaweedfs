@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/seaweedfs/seaweedfs/weed/pb"
 	"github.com/valyala/bytebufferpool"
 	"io"
 	"mime"
@@ -104,7 +105,7 @@ func newUploader(httpClient HTTPClient) *Uploader {
 
 // UploadWithRetry will retry both assigning volume request and uploading content
 // The option parameter does not need to specify UploadUrl and Jwt, which will come from assigning volume.
-func (uploader *Uploader) UploadWithRetry(filerClient filer_pb.FilerClient, assignRequest *filer_pb.AssignVolumeRequest, uploadOption *UploadOption, genFileUrlFn func(host, fileId string) string, reader io.Reader) (fileId string, uploadResult *UploadResult, err error, data []byte) {
+func (uploader *Uploader) UploadWithRetry(ctx context.Context, filerClient filer_pb.FilerClient, assignRequest *filer_pb.AssignVolumeRequest, uploadOption *UploadOption, genFileUrlFn func(host, fileId string) string, reader io.Reader) (fileId string, uploadResult *UploadResult, err error, data []byte) {
 	doUploadFunc := func() error {
 
 		var host string
@@ -134,7 +135,7 @@ func (uploader *Uploader) UploadWithRetry(filerClient filer_pb.FilerClient, assi
 		uploadOption.Jwt = auth
 
 		var uploadErr error
-		uploadResult, uploadErr, data = uploader.doUpload(reader, uploadOption)
+		uploadResult, uploadErr, data = uploader.doUpload(ctx, reader, uploadOption)
 		return uploadErr
 	}
 	if uploadOption.RetryForever {
@@ -151,18 +152,18 @@ func (uploader *Uploader) UploadWithRetry(filerClient filer_pb.FilerClient, assi
 }
 
 // Upload sends a POST request to a volume server to upload the content with adjustable compression level
-func (uploader *Uploader) UploadData(data []byte, option *UploadOption) (uploadResult *UploadResult, err error) {
-	uploadResult, err = uploader.retriedUploadData(data, option)
+func (uploader *Uploader) UploadData(ctx context.Context, data []byte, option *UploadOption) (uploadResult *UploadResult, err error) {
+	uploadResult, err = uploader.retriedUploadData(ctx, data, option)
 	return
 }
 
 // Upload sends a POST request to a volume server to upload the content with fast compression
-func (uploader *Uploader) Upload(reader io.Reader, option *UploadOption) (uploadResult *UploadResult, err error, data []byte) {
-	uploadResult, err, data = uploader.doUpload(reader, option)
+func (uploader *Uploader) Upload(ctx context.Context, reader io.Reader, option *UploadOption) (uploadResult *UploadResult, err error, data []byte) {
+	uploadResult, err, data = uploader.doUpload(ctx, reader, option)
 	return
 }
 
-func (uploader *Uploader) doUpload(reader io.Reader, option *UploadOption) (uploadResult *UploadResult, err error, data []byte) {
+func (uploader *Uploader) doUpload(ctx context.Context, reader io.Reader, option *UploadOption) (uploadResult *UploadResult, err error, data []byte) {
 	bytesReader, ok := reader.(*util.BytesReader)
 	if ok {
 		data = bytesReader.Bytes
@@ -173,16 +174,16 @@ func (uploader *Uploader) doUpload(reader io.Reader, option *UploadOption) (uplo
 			return
 		}
 	}
-	uploadResult, uploadErr := uploader.retriedUploadData(data, option)
+	uploadResult, uploadErr := uploader.retriedUploadData(ctx, data, option)
 	return uploadResult, uploadErr, data
 }
 
-func (uploader *Uploader) retriedUploadData(data []byte, option *UploadOption) (uploadResult *UploadResult, err error) {
+func (uploader *Uploader) retriedUploadData(ctx context.Context, data []byte, option *UploadOption) (uploadResult *UploadResult, err error) {
 	for i := 0; i < 3; i++ {
 		if i > 0 {
 			time.Sleep(time.Millisecond * time.Duration(237*(i+1)))
 		}
-		uploadResult, err = uploader.doUploadData(data, option)
+		uploadResult, err = uploader.doUploadData(ctx, data, option)
 		if err == nil {
 			uploadResult.RetryCount = i
 			return
@@ -192,7 +193,7 @@ func (uploader *Uploader) retriedUploadData(data []byte, option *UploadOption) (
 	return
 }
 
-func (uploader *Uploader) doUploadData(data []byte, option *UploadOption) (uploadResult *UploadResult, err error) {
+func (uploader *Uploader) doUploadData(ctx context.Context, data []byte, option *UploadOption) (uploadResult *UploadResult, err error) {
 	contentIsGzipped := option.IsInputCompressed
 	shouldGzipNow := false
 	if !option.IsInputCompressed {
@@ -248,7 +249,7 @@ func (uploader *Uploader) doUploadData(data []byte, option *UploadOption) (uploa
 		}
 
 		// upload data
-		uploadResult, err = uploader.upload_content(func(w io.Writer) (err error) {
+		uploadResult, err = uploader.upload_content(ctx, func(w io.Writer) (err error) {
 			_, err = w.Write(encryptedData)
 			return
 		}, len(encryptedData), &UploadOption{
@@ -272,7 +273,7 @@ func (uploader *Uploader) doUploadData(data []byte, option *UploadOption) (uploa
 		}
 	} else {
 		// upload data
-		uploadResult, err = uploader.upload_content(func(w io.Writer) (err error) {
+		uploadResult, err = uploader.upload_content(ctx, func(w io.Writer) (err error) {
 			_, err = w.Write(data)
 			return
 		}, len(data), &UploadOption{
@@ -298,7 +299,7 @@ func (uploader *Uploader) doUploadData(data []byte, option *UploadOption) (uploa
 	return uploadResult, err
 }
 
-func (uploader *Uploader) upload_content(fillBufferFunction func(w io.Writer) error, originalDataSize int, option *UploadOption) (*UploadResult, error) {
+func (uploader *Uploader) upload_content(ctx context.Context, fillBufferFunction func(w io.Writer) error, originalDataSize int, option *UploadOption) (*UploadResult, error) {
 	var body_writer *multipart.Writer
 	var reqReader *bytes.Reader
 	var buf *bytebufferpool.ByteBuffer
@@ -351,6 +352,7 @@ func (uploader *Uploader) upload_content(fillBufferFunction func(w io.Writer) er
 		glog.V(1).Infof("create upload request %s: %v", option.UploadUrl, postErr)
 		return nil, fmt.Errorf("create upload request %s: %v", option.UploadUrl, postErr)
 	}
+	req.Header.Set("X-Request-ID", GetRequestID(ctx))
 	req.Header.Set("Content-Type", content_type)
 	for k, v := range option.PairMap {
 		req.Header.Set(k, v)
@@ -406,4 +408,13 @@ func getEtag(r *http.Response) (etag string) {
 		etag = etag[1 : len(etag)-1]
 	}
 	return
+}
+
+// GetRequestID Надо кудато засунуть, чтоб не дублировать и не получить цикличные импорты
+func GetRequestID(ctx context.Context) string {
+	if ctx == nil {
+		return ""
+	}
+	id, _ := ctx.Value(pb.RequestIDKey).(string)
+	return id
 }

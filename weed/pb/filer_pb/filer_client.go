@@ -276,13 +276,13 @@ func MkFile(filerClient FilerClient, parentDirectoryPath string, fileName string
 	})
 }
 
-func Remove(filerClient FilerClient, parentDirectoryPath, name string, isDeleteData, isRecursive, ignoreRecursiveErr, isFromOtherCluster bool, signatures []int32) error {
+func Remove(ctx context.Context, filerClient FilerClient, parentDirectoryPath, name string, isDeleteData, isRecursive, ignoreRecursiveErr, isFromOtherCluster bool, signatures []int32) error {
 	return filerClient.WithFilerClient(false, func(client SeaweedFilerClient) error {
-		return DoRemove(client, parentDirectoryPath, name, isDeleteData, isRecursive, ignoreRecursiveErr, isFromOtherCluster, signatures)
+		return DoRemove(ctx, client, parentDirectoryPath, name, isDeleteData, isRecursive, ignoreRecursiveErr, isFromOtherCluster, signatures)
 	})
 }
 
-func DoRemove(client SeaweedFilerClient, parentDirectoryPath string, name string, isDeleteData bool, isRecursive bool, ignoreRecursiveErr bool, isFromOtherCluster bool, signatures []int32) error {
+func DoRemove(ctx context.Context, client SeaweedFilerClient, parentDirectoryPath string, name string, isDeleteData bool, isRecursive bool, ignoreRecursiveErr bool, isFromOtherCluster bool, signatures []int32) error {
 	deleteEntryRequest := &DeleteEntryRequest{
 		Directory:            parentDirectoryPath,
 		Name:                 name,
@@ -292,7 +292,8 @@ func DoRemove(client SeaweedFilerClient, parentDirectoryPath string, name string
 		IsFromOtherCluster:   isFromOtherCluster,
 		Signatures:           signatures,
 	}
-	if resp, err := client.DeleteEntry(context.Background(), deleteEntryRequest); err != nil {
+
+	if resp, err := client.DeleteEntry(ctx, deleteEntryRequest); err != nil {
 		if strings.Contains(err.Error(), ErrNotFound.Error()) {
 			return nil
 		}

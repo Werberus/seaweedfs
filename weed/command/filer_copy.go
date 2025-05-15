@@ -348,6 +348,7 @@ func (worker *FileCopyWorker) uploadFileAsOne(task FileCopyTask, f *os.File) err
 		}
 
 		finalFileId, uploadResult, flushErr, _ := uploader.UploadWithRetry(
+			context.Background(),
 			worker,
 			&filer_pb.AssignVolumeRequest{
 				Count:       1,
@@ -433,6 +434,7 @@ func (worker *FileCopyWorker) uploadFileInChunks(task FileCopyTask, f *os.File, 
 			}
 
 			fileId, uploadResult, err, _ := uploader.UploadWithRetry(
+				context.Background(),
 				worker,
 				&filer_pb.AssignVolumeRequest{
 					Count:       1,
@@ -550,6 +552,7 @@ func (worker *FileCopyWorker) saveDataAsChunk(reader io.Reader, name string, off
 	}
 
 	finalFileId, uploadResult, flushErr, _ := uploader.UploadWithRetry(
+		context.Background(),
 		worker,
 		&filer_pb.AssignVolumeRequest{
 			Count:       1,

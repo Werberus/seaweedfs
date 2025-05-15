@@ -1,6 +1,7 @@
 package broker
 
 import (
+	"context"
 	"fmt"
 	"github.com/seaweedfs/seaweedfs/weed/filer"
 	"github.com/seaweedfs/seaweedfs/weed/operation"
@@ -62,6 +63,7 @@ func (b *MessageQueueBroker) assignAndUpload(targetFile string, data []byte) (fi
 	}
 
 	fileId, uploadResult, err, _ = uploader.UploadWithRetry(
+		context.Background(),
 		b,
 		&filer_pb.AssignVolumeRequest{
 			Count:       1,

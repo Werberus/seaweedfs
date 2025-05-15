@@ -299,7 +299,7 @@ func (fs *WebDavFileSystem) removeAll(ctx context.Context, fullFilePath string) 
 
 	dir, name := util.FullPath(fullFilePath).DirAndName()
 
-	return filer_pb.Remove(fs, dir, name, true, false, false, false, []int32{fs.signature})
+	return filer_pb.Remove(context.Background(), fs, dir, name, true, false, false, false, []int32{fs.signature})
 
 }
 
@@ -410,6 +410,7 @@ func (f *WebDavFile) saveDataAsChunk(reader io.Reader, name string, offset int64
 	}
 
 	fileId, uploadResult, flushErr, _ := uploader.UploadWithRetry(
+		context.Background(),
 		f.fs,
 		&filer_pb.AssignVolumeRequest{
 			Count:       1,

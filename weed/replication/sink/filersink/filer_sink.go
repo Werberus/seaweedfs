@@ -95,7 +95,7 @@ func (fs *FilerSink) DeleteEntry(key string, isDirectory, deleteIncludeChunks bo
 	dir, name := util.FullPath(key).DirAndName()
 
 	glog.V(4).Infof("delete entry: %v", key)
-	err := filer_pb.Remove(fs, dir, name, deleteIncludeChunks, true, true, true, signatures)
+	err := filer_pb.Remove(context.Background(), fs, dir, name, deleteIncludeChunks, true, true, true, signatures)
 	if err != nil {
 		glog.V(0).Infof("delete entry %s: %v", key, err)
 		return fmt.Errorf("delete entry %s: %v", key, err)

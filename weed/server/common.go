@@ -3,9 +3,14 @@ package weed_server
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
+	"github.com/seaweedfs/seaweedfs/weed/pb"
+	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc/metadata"
 	"io"
 	"io/fs"
 	"mime/multipart"
@@ -126,6 +131,7 @@ func debug(params ...interface{}) {
 }
 
 func submitForClientHandler(w http.ResponseWriter, r *http.Request, masterFn operation.GetMasterFn, grpcDialOption grpc.DialOption) {
+	ctx := r.Context()
 	m := make(map[string]interface{})
 	if r.Method != http.MethodPost {
 		writeJsonError(w, r, http.StatusMethodNotAllowed, errors.New("Only submit via POST!"))
@@ -160,7 +166,7 @@ func submitForClientHandler(w http.ResponseWriter, r *http.Request, masterFn ope
 		Ttl:         r.FormValue("ttl"),
 		DiskType:    r.FormValue("disk"),
 	}
-	assignResult, ae := operation.Assign(masterFn, grpcDialOption, ar)
+	assignResult, ae := operation.Assign(ctx, masterFn, grpcDialOption, ar)
 	if ae != nil {
 		writeJsonError(w, r, http.StatusInternalServerError, ae)
 		return
@@ -186,7 +192,7 @@ func submitForClientHandler(w http.ResponseWriter, r *http.Request, masterFn ope
 		writeJsonError(w, r, http.StatusInternalServerError, err)
 		return
 	}
-	uploadResult, err := uploader.UploadData(pu.Data, uploadOption)
+	uploadResult, err := uploader.UploadData(ctx, pu.Data, uploadOption)
 	if err != nil {
 		writeJsonError(w, r, http.StatusInternalServerError, err)
 		return
@@ -420,4 +426,35 @@ func ProcessRangeRequest(r *http.Request, w http.ResponseWriter, totalSize int64
 		return fmt.Errorf("ProcessRangeRequest err: %v", err)
 	}
 	return nil
+}
+
+func requestIDMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		reqID := r.Header.Get("X-Request-ID")
+		if reqID == "" {
+			reqID = uuid.New().String()
+		} else {
+			logrus.WithField("request_id", reqID).
+				WithField("path", r.URL.Path).
+				Info("Incoming request")
+		}
+
+		ctx := context.WithValue(r.Context(), pb.RequestIDKey, reqID)
+
+		md := metadata.New(map[string]string{
+			"x-request-id": reqID,
+		})
+		ctx = metadata.NewOutgoingContext(ctx, md)
+
+		w.Header().Set("X-Request-ID", reqID)
+		next(w, r.WithContext(ctx))
+	}
+}
+
+func GetRequestID(ctx context.Context) string {
+	if ctx == nil {
+		return ""
+	}
+	id, _ := ctx.Value(pb.RequestIDKey).(string)
+	return id
 }
