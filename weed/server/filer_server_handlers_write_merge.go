@@ -38,7 +38,7 @@ func (fs *FilerServer) maybeMergeChunks(ctx context.Context, so *operation.Stora
 }
 
 func (fs *FilerServer) mergeChunks(ctx context.Context, so *operation.StorageOption, inputChunks []*filer_pb.FileChunk, chunkOffset int64) (mergedChunks []*filer_pb.FileChunk, mergeErr error) {
-	chunkedFileReader := filer.NewChunkStreamReaderFromFiler(fs.filer.MasterClient, inputChunks)
+	chunkedFileReader := filer.NewChunkStreamReaderFromFiler(ctx, fs.filer.MasterClient, inputChunks)
 	_, mergeErr = chunkedFileReader.Seek(chunkOffset, io.SeekCurrent)
 	if mergeErr != nil {
 		return nil, mergeErr
@@ -55,7 +55,7 @@ func (fs *FilerServer) mergeChunks(ctx context.Context, so *operation.StorageOpt
 		}
 	}
 
-	garbage, err := filer.MinusChunks(fs.lookupFileId, inputChunks, mergedChunks)
+	garbage, err := filer.MinusChunks(ctx, fs.lookupFileId, inputChunks, mergedChunks)
 	if err != nil {
 		glog.Errorf("Failed to resolve old entry chunks when delete old entry chunks. new: %s, old: %s",
 			mergedChunks, inputChunks)

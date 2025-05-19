@@ -83,7 +83,7 @@ func (wfs *WFS) Mknod(cancel <-chan struct{}, in *fuse.MknodIn, name string, out
 		}
 
 		glog.V(1).Infof("mknod: %v", request)
-		if err := filer_pb.CreateEntry(client, request); err != nil {
+		if err := filer_pb.CreateEntry(context.Background(), client, request); err != nil {
 			glog.V(0).Infof("mknod %s: %v", entryFullPath, err)
 			return err
 		}

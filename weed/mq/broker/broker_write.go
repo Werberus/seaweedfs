@@ -21,7 +21,7 @@ func (b *MessageQueueBroker) appendToFile(targetFile string, data []byte) error 
 	// find out existing entry
 	fullpath := util.FullPath(targetFile)
 	dir, name := fullpath.DirAndName()
-	entry, err := filer_pb.GetEntry(b, fullpath)
+	entry, err := filer_pb.GetEntry(context.Background(), b, fullpath)
 	var offset int64 = 0
 	if err == filer_pb.ErrNotFound {
 		entry = &filer_pb.Entry{
@@ -46,7 +46,7 @@ func (b *MessageQueueBroker) appendToFile(targetFile string, data []byte) error 
 
 	// update the entry
 	return b.WithFilerClient(false, func(client filer_pb.SeaweedFilerClient) error {
-		return filer_pb.CreateEntry(client, &filer_pb.CreateEntryRequest{
+		return filer_pb.CreateEntry(context.Background(), client, &filer_pb.CreateEntryRequest{
 			Directory: dir,
 			Entry:     entry,
 		})

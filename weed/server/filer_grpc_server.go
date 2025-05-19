@@ -204,7 +204,7 @@ func (fs *FilerServer) cleanupChunks(ctx context.Context, fullpath string, exist
 
 	// remove old chunks if not included in the new ones
 	if existingEntry != nil {
-		garbage, err = filer.MinusChunks(fs.lookupFileId, existingEntry.GetChunks(), newEntry.GetChunks())
+		garbage, err = filer.MinusChunks(ctx, fs.lookupFileId, existingEntry.GetChunks(), newEntry.GetChunks())
 		if err != nil {
 			return newEntry.GetChunks(), nil, fmt.Errorf("MinusChunks: %v", err)
 		}
@@ -213,7 +213,7 @@ func (fs *FilerServer) cleanupChunks(ctx context.Context, fullpath string, exist
 	// files with manifest chunks are usually large and append only, skip calculating covered chunks
 	manifestChunks, nonManifestChunks := filer.SeparateManifestChunks(newEntry.GetChunks())
 
-	chunks, coveredChunks := filer.CompactFileChunks(fs.lookupFileId, nonManifestChunks)
+	chunks, coveredChunks := filer.CompactFileChunks(ctx, fs.lookupFileId, nonManifestChunks)
 	garbage = append(garbage, coveredChunks...)
 
 	if newEntry.Attributes != nil {
@@ -361,7 +361,7 @@ func (fs *FilerServer) DeleteCollection(ctx context.Context, req *filer_pb.Delet
 
 	glog.V(4).Infof("DeleteCollection %v", req)
 
-	err = fs.filer.DoDeleteCollection(req.GetCollection())
+	err = fs.filer.DoDeleteCollection(ctx, req.GetCollection())
 
 	return &filer_pb.DeleteCollectionResponse{}, err
 }

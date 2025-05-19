@@ -427,7 +427,7 @@ func genProcessFunction(sourcePath string, targetPath string, excludePaths []str
 				return nil
 			}
 			key := buildKey(dataSink, message, targetPath, sourceOldKey, sourcePath)
-			return dataSink.DeleteEntry(key, message.OldEntry.IsDirectory, message.DeleteChunks, message.Signatures)
+			return dataSink.DeleteEntry(context.Background(), key, message.OldEntry.IsDirectory, message.DeleteChunks, message.Signatures)
 		}
 
 		// handle new entries
@@ -436,7 +436,7 @@ func genProcessFunction(sourcePath string, targetPath string, excludePaths []str
 				return nil
 			}
 			key := buildKey(dataSink, message, targetPath, sourceNewKey, sourcePath)
-			if err := dataSink.CreateEntry(key, message.NewEntry, message.Signatures); err != nil {
+			if err := dataSink.CreateEntry(context.Background(), key, message.NewEntry, message.Signatures); err != nil {
 				return fmt.Errorf("create entry1 : %w", err)
 			} else {
 				return nil
@@ -460,19 +460,19 @@ func genProcessFunction(sourcePath string, targetPath string, excludePaths []str
 					} else {
 						message.NewParentPath = util.Join(targetPath, message.NewParentPath[len(sourcePath):])
 					}
-					foundExisting, err := dataSink.UpdateEntry(string(oldKey), message.OldEntry, message.NewParentPath, message.NewEntry, message.DeleteChunks, message.Signatures)
+					foundExisting, err := dataSink.UpdateEntry(context.Background(), string(oldKey), message.OldEntry, message.NewParentPath, message.NewEntry, message.DeleteChunks, message.Signatures)
 					if foundExisting {
 						return err
 					}
 
 					// not able to find old entry
-					if err = dataSink.DeleteEntry(string(oldKey), message.OldEntry.IsDirectory, false, message.Signatures); err != nil {
+					if err = dataSink.DeleteEntry(context.Background(), string(oldKey), message.OldEntry.IsDirectory, false, message.Signatures); err != nil {
 						return fmt.Errorf("delete old entry %v: %w", oldKey, err)
 					}
 				}
 				// create the new entry
 				newKey := buildKey(dataSink, message, targetPath, sourceNewKey, sourcePath)
-				if err := dataSink.CreateEntry(newKey, message.NewEntry, message.Signatures); err != nil {
+				if err := dataSink.CreateEntry(context.Background(), newKey, message.NewEntry, message.Signatures); err != nil {
 					return fmt.Errorf("create entry2 : %w", err)
 				} else {
 					return nil
@@ -482,7 +482,7 @@ func genProcessFunction(sourcePath string, targetPath string, excludePaths []str
 				// new key is outside the watched directory
 				if doDeleteFiles {
 					key := buildKey(dataSink, message, targetPath, sourceOldKey, sourcePath)
-					return dataSink.DeleteEntry(key, message.OldEntry.IsDirectory, message.DeleteChunks, message.Signatures)
+					return dataSink.DeleteEntry(context.Background(), key, message.OldEntry.IsDirectory, message.DeleteChunks, message.Signatures)
 				}
 			}
 		} else {
@@ -490,7 +490,7 @@ func genProcessFunction(sourcePath string, targetPath string, excludePaths []str
 			if strings.HasPrefix(string(sourceNewKey), sourcePath) {
 				// new key is in the watched directory
 				key := buildKey(dataSink, message, targetPath, sourceNewKey, sourcePath)
-				if err := dataSink.CreateEntry(key, message.NewEntry, message.Signatures); err != nil {
+				if err := dataSink.CreateEntry(context.Background(), key, message.NewEntry, message.Signatures); err != nil {
 					return fmt.Errorf("create entry3 : %w", err)
 				} else {
 					return nil

@@ -153,7 +153,7 @@ func (fs *FilerServer) uploadReaderToChunks(ctx context.Context, reader io.Reade
 		for _, chunk := range fileChunks {
 			glog.V(4).Infof("purging failed uploaded %s chunk %s [%d,%d)", fileName, chunk.FileId, chunk.Offset, chunk.Offset+int64(chunk.Size))
 		}
-		fs.filer.DeleteUncommittedChunks(fileChunks)
+		fs.filer.DeleteUncommittedChunks(ctx, fileChunks)
 		return nil, md5Hash, 0, uploadErr, nil
 	}
 	slices.SortFunc(fileChunks, func(a, b *filer_pb.FileChunk) int {

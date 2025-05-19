@@ -356,7 +356,7 @@ func saveParquetFileToPartitionDir(filerClient filer_pb.FilerClient, sourceFile 
 
 	// write the entry to partitionDir
 	if err := filerClient.WithFilerClient(false, func(client filer_pb.SeaweedFilerClient) error {
-		return filer_pb.CreateEntry(client, &filer_pb.CreateEntryRequest{
+		return filer_pb.CreateEntry(context.Background(), client, &filer_pb.CreateEntryRequest{
 			Directory: partitionDir,
 			Entry:     entry,
 		})

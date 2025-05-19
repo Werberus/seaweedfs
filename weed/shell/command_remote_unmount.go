@@ -104,7 +104,7 @@ func (c *commandRemoteUnmount) purgeMountedData(commandEnv *CommandEnv, dir stri
 			return fmt.Errorf("delete %s: %v", dir, deleteError)
 		}
 
-		mkdirErr := filer_pb.DoMkdir(client, parent, name, func(entry *filer_pb.Entry) {
+		mkdirErr := filer_pb.DoMkdir(context.Background(), client, parent, name, func(entry *filer_pb.Entry) {
 			entry.Attributes = oldEntry.Attributes
 			entry.Extended = oldEntry.Extended
 			entry.Attributes.Crtime = time.Now().Unix()

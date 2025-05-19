@@ -51,7 +51,7 @@ func (wfs *WFS) Mkdir(cancel <-chan struct{}, in *fuse.MkdirIn, name string, out
 	entryFullPath := dirFullPath.Child(name)
 
 	err := wfs.WithFilerClient(false, func(client filer_pb.SeaweedFilerClient) error {
-
+		ctx := context.Background()
 		wfs.mapPbIdFromLocalToFiler(newEntry)
 		defer wfs.mapPbIdFromFilerToLocal(newEntry)
 
@@ -63,12 +63,12 @@ func (wfs *WFS) Mkdir(cancel <-chan struct{}, in *fuse.MkdirIn, name string, out
 		}
 
 		glog.V(1).Infof("mkdir: %v", request)
-		if err := filer_pb.CreateEntry(client, request); err != nil {
+		if err := filer_pb.CreateEntry(ctx, client, request); err != nil {
 			glog.V(0).Infof("mkdir %s: %v", entryFullPath, err)
 			return err
 		}
 
-		if err := wfs.metaCache.InsertEntry(context.Background(), filer.FromPbEntry(request.Directory, request.Entry)); err != nil {
+		if err := wfs.metaCache.InsertEntry(ctx, filer.FromPbEntry(request.Directory, request.Entry)); err != nil {
 			return fmt.Errorf("local mkdir dir %s: %v", entryFullPath, err)
 		}
 
