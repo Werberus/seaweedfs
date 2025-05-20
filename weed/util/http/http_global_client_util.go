@@ -305,7 +305,6 @@ func ReadUrlAsStreamAuthenticated(ctx context.Context, fileUrl, jwt string, ciph
 		return false, err
 	}
 	req.Header.Set("X-Request-ID", GetRequestID(ctx))
-	fmt.Println("ReadUrlAsStreamAuthenticated", GetRequestID(ctx))
 	if isFullChunk {
 		req.Header.Add("Accept-Encoding", "gzip")
 	} else {
