@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/seaweedfs/seaweedfs/weed/pb"
-	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/metadata"
 	"io"
 	"io/fs"
@@ -428,17 +427,12 @@ func ProcessRangeRequest(r *http.Request, w http.ResponseWriter, totalSize int64
 	return nil
 }
 
-func requestIDMiddleware(next http.HandlerFunc) http.HandlerFunc {
+func requestIDMiddleware(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		reqID := r.Header.Get("X-Request-ID")
 		if reqID == "" {
 			reqID = uuid.New().String()
-		} else {
-			logrus.WithField("request_id", reqID).
-				WithField("path", r.URL.Path).
-				Info("Incoming request")
 		}
-
 		ctx := context.WithValue(r.Context(), pb.RequestIDKey, reqID)
 
 		md := metadata.New(map[string]string{
@@ -447,6 +441,6 @@ func requestIDMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		ctx = metadata.NewOutgoingContext(ctx, md)
 
 		w.Header().Set("X-Request-ID", reqID)
-		next(w, r.WithContext(ctx))
+		h(w, r.WithContext(ctx))
 	}
 }

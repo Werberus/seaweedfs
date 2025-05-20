@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/metadata"
 	"math/rand/v2"
 	"net/http"
@@ -70,7 +69,7 @@ func NewGrpcServer(opts ...grpc.ServerOption) *grpc.Server {
 	return grpc.NewServer(options...)
 }
 
-const RequestIDKey = "requestID"
+const RequestIDKey = "x-request-id"
 
 func WithRequestID(ctx context.Context, id string) context.Context {
 	return context.WithValue(ctx, RequestIDKey, id)
@@ -84,20 +83,17 @@ func RequestIDUnaryInterceptor() grpc.UnaryServerInterceptor {
 		handler grpc.UnaryHandler,
 	) (interface{}, error) {
 		md, _ := metadata.FromIncomingContext(ctx)
-		idList := md.Get("x-request-id")
+		idList := md.Get(RequestIDKey)
 		var reqID string
 		if len(idList) > 0 {
 			reqID = idList[0]
 		}
 		if reqID == "" {
 			reqID = uuid.New().String()
-		} else {
-			log := logrus.WithField("requestID", reqID)
-			log.Infof("gRPC %s", info.FullMethod)
 		}
 
 		ctx = WithRequestID(ctx, reqID)
-		grpc.SetTrailer(ctx, metadata.Pairs("x-request-id", reqID))
+		grpc.SetTrailer(ctx, metadata.Pairs(RequestIDKey, reqID))
 
 		return handler(ctx, req)
 	}
