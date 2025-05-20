@@ -450,11 +450,3 @@ func requestIDMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		next(w, r.WithContext(ctx))
 	}
 }
-
-func GetRequestID(ctx context.Context) string {
-	if ctx == nil {
-		return ""
-	}
-	id, _ := ctx.Value(pb.RequestIDKey).(string)
-	return id
-}

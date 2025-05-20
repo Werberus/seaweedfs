@@ -124,6 +124,7 @@ func newFilePart(fullPathFilename string) (ret *FilePart, err error) {
 }
 
 func (fi *FilePart) Upload(maxMB int, masterFn GetMasterFn, usePublicUrl bool, jwt security.EncodedJwt, grpcDialOption grpc.DialOption) (retSize uint32, err error) {
+	ctx := context.Background()
 	fileUrl := "http://" + fi.Server + "/" + fi.Fid
 	if fi.ModTime != 0 {
 		fileUrl += "?ts=" + strconv.Itoa(int(fi.ModTime))
@@ -155,7 +156,7 @@ func (fi *FilePart) Upload(maxMB int, masterFn GetMasterFn, usePublicUrl bool, j
 				Ttl:         fi.Pref.Ttl,
 				DiskType:    fi.Pref.DiskType,
 			}
-			ret, err = Assign(context.Background(), masterFn, grpcDialOption, ar)
+			ret, err = Assign(ctx, masterFn, grpcDialOption, ar)
 			if err != nil {
 				return
 			}
@@ -169,10 +170,10 @@ func (fi *FilePart) Upload(maxMB int, masterFn GetMasterFn, usePublicUrl bool, j
 					Ttl:         fi.Pref.Ttl,
 					DiskType:    fi.Pref.DiskType,
 				}
-				ret, err = Assign(context.Background(), masterFn, grpcDialOption, ar)
+				ret, err = Assign(ctx, masterFn, grpcDialOption, ar)
 				if err != nil {
 					// delete all uploaded chunks
-					cm.DeleteChunks(masterFn, usePublicUrl, grpcDialOption)
+					cm.DeleteChunks(ctx, masterFn, usePublicUrl, grpcDialOption)
 					return
 				}
 				id = ret.Fid
@@ -190,7 +191,7 @@ func (fi *FilePart) Upload(maxMB int, masterFn GetMasterFn, usePublicUrl bool, j
 				ret.Auth)
 			if e != nil {
 				// delete all uploaded chunks
-				cm.DeleteChunks(masterFn, usePublicUrl, grpcDialOption)
+				cm.DeleteChunks(ctx, masterFn, usePublicUrl, grpcDialOption)
 				return 0, e
 			}
 			cm.Chunks = append(cm.Chunks,
@@ -205,7 +206,7 @@ func (fi *FilePart) Upload(maxMB int, masterFn GetMasterFn, usePublicUrl bool, j
 		err = uploadChunkedFileManifest(fileUrl, &cm, jwt)
 		if err != nil {
 			// delete all uploaded chunks
-			cm.DeleteChunks(masterFn, usePublicUrl, grpcDialOption)
+			cm.DeleteChunks(ctx, masterFn, usePublicUrl, grpcDialOption)
 		}
 	} else {
 		uploadOption := &UploadOption{

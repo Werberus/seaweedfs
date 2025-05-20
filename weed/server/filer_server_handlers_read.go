@@ -2,7 +2,6 @@ package weed_server
 
 import (
 	"bytes"
-	"context"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
@@ -96,7 +95,7 @@ func (fs *FilerServer) GetOrHeadHandler(w http.ResponseWriter, r *http.Request) 
 		path = path[:len(path)-1]
 	}
 
-	entry, err := fs.filer.FindEntry(context.Background(), util.FullPath(path))
+	entry, err := fs.filer.FindEntry(ctx, util.FullPath(path))
 	if err != nil {
 		if path == "/" {
 			fs.listDirectoryHandler(w, r)

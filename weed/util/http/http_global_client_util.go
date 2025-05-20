@@ -102,12 +102,13 @@ func maybeAddAuth(req *http.Request, jwt string) {
 	}
 }
 
-func Delete(url string, jwt string) error {
+func Delete(ctx context.Context, url string, jwt string) error {
 	req, err := http.NewRequest(http.MethodDelete, url, nil)
 	maybeAddAuth(req, jwt)
 	if err != nil {
 		return err
 	}
+	req.Header.Set("X-Request-ID", GetRequestID(ctx))
 	resp, e := GetGlobalHttpClient().Do(req)
 	if e != nil {
 		return e
@@ -355,7 +356,7 @@ func ReadUrlAsStreamAuthenticated(ctx context.Context, fileUrl, jwt string, ciph
 
 }
 
-// GetRequestID Надо кудато засунуть, чтоб не дублировать и не получить цикличные импорты
+// GetRequestID returns the request_id from the context, if available.
 func GetRequestID(ctx context.Context) string {
 	if ctx == nil {
 		return ""

@@ -49,7 +49,7 @@ func main() {
 
 		assignResult, targetUrl := genFile(grpcDialOption, i)
 
-		util_http.Delete(targetUrl, string(assignResult.Auth))
+		util_http.Delete(context.Background(), targetUrl, string(assignResult.Auth))
 
 	}
 

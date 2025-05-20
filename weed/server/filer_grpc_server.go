@@ -3,6 +3,7 @@ package weed_server
 import (
 	"context"
 	"fmt"
+	util_http "github.com/seaweedfs/seaweedfs/weed/util/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -138,7 +139,7 @@ func (fs *FilerServer) lookupFileId(fileId string) (targetUrls []string, err err
 
 func (fs *FilerServer) CreateEntry(ctx context.Context, req *filer_pb.CreateEntryRequest) (resp *filer_pb.CreateEntryResponse, err error) {
 
-	glog.V(4).Infof("Request ID: %s, CreateEntry %v/%v", GetRequestID(ctx), req.Directory, req.Entry.Name)
+	glog.V(4).Infof("Request ID: %s, CreateEntry %v/%v", util_http.GetRequestID(ctx), req.Directory, req.Entry.Name)
 
 	resp = &filer_pb.CreateEntryResponse{}
 	chunks, garbage, err2 := fs.cleanupChunks(ctx, util.Join(req.Directory, req.Entry.Name), nil, req.Entry)
@@ -288,7 +289,7 @@ func (fs *FilerServer) AppendToEntry(ctx context.Context, req *filer_pb.AppendTo
 
 func (fs *FilerServer) DeleteEntry(ctx context.Context, req *filer_pb.DeleteEntryRequest) (resp *filer_pb.DeleteEntryResponse, err error) {
 	glog.V(4).Infof("DeleteEntry %v", req)
-	glog.Infof("REQUESTID: %s, req: %s/%s", GetRequestID(ctx), req.Directory, req.Name)
+	glog.Infof("REQUESTID: %s, req: %s/%s", util_http.GetRequestID(ctx), req.Directory, req.Name)
 	err = fs.filer.DeleteEntryMetaAndData(ctx, util.JoinPath(req.Directory, req.Name), req.IsRecursive, req.IgnoreRecursiveError, req.IsDeleteData, req.IsFromOtherCluster, req.Signatures, req.IfNotModifiedAfter)
 	resp = &filer_pb.DeleteEntryResponse{}
 	if err != nil && err != filer_pb.ErrNotFound {

@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/seaweedfs/seaweedfs/weed/pb"
 	"github.com/valyala/bytebufferpool"
 	"io"
 	"mime"
@@ -352,7 +351,7 @@ func (uploader *Uploader) upload_content(ctx context.Context, fillBufferFunction
 		glog.V(1).Infof("create upload request %s: %v", option.UploadUrl, postErr)
 		return nil, fmt.Errorf("create upload request %s: %v", option.UploadUrl, postErr)
 	}
-	req.Header.Set("X-Request-ID", GetRequestID(ctx))
+	req.Header.Set("X-Request-ID", util_http.GetRequestID(ctx))
 	req.Header.Set("Content-Type", content_type)
 	for k, v := range option.PairMap {
 		req.Header.Set(k, v)
@@ -408,13 +407,4 @@ func getEtag(r *http.Response) (etag string) {
 		etag = etag[1 : len(etag)-1]
 	}
 	return
-}
-
-// GetRequestID Надо кудато засунуть, чтоб не дублировать и не получить цикличные импорты
-func GetRequestID(ctx context.Context) string {
-	if ctx == nil {
-		return ""
-	}
-	id, _ := ctx.Value(pb.RequestIDKey).(string)
-	return id
 }

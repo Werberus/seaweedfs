@@ -2,7 +2,6 @@ package filer
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -79,10 +78,8 @@ func (f *Filer) DeleteUncommittedChunks(ctx context.Context, chunks []*filer_pb.
 }
 
 func (f *Filer) DeleteChunks(ctx context.Context, fullpath util.FullPath, chunks []*filer_pb.FileChunk) {
-	fmt.Println("DeleteChunks")
 
 	rule := f.FilerConf.MatchStorageRule(string(fullpath))
-	fmt.Println("rule", rule)
 
 	if rule.DisableChunkDeletion {
 		return
@@ -91,7 +88,6 @@ func (f *Filer) DeleteChunks(ctx context.Context, fullpath util.FullPath, chunks
 }
 
 func (f *Filer) doDeleteChunks(ctx context.Context, chunks []*filer_pb.FileChunk) {
-	fmt.Println("doDeleteChunks")
 
 	for _, chunk := range chunks {
 		if !chunk.IsChunkManifest {
